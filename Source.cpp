@@ -1,23 +1,22 @@
-#include <Windows.h>
 #include <stdio.h>
-#include <gl/glut.h>
+#include <glad/glad.h>
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
 #include "Source.h"
 #include <vector>
-#include <iostream>
-#include <thread>
 #include <chrono>
 #include <stdlib.h> 
 #include <time.h> 
 
-using namespace std; 
+using namespace std;
 
 int WIDTH = 1000;
 int LENGTH = 1000;
 
 struct Cell {
-	int x;
-	int y;
-	bool alive;
+    int x;
+    int y;
+    bool alive;
 };
 
 std::vector<Cell> cellArray;
@@ -34,25 +33,44 @@ void init() {
     nextgenarray = cellArray;
 }
 
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
+
+    if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
+        for (Cell i : cellArray)
+            i.alive = false;
+        nextgenarray = cellArray;
+
+        for (int x = 0; x < 12000; x++) {
+            cellArray[(rand() % 39200) + (rand() % 6437)].alive = true;
+        }
+    }
+
+}
+
+
+
+int counter = 0;
+
 void drawSquare(double x1, double y1, double sidelength = 1)
 {
-	x1 = x1 + 0.5;
-	y1 = y1 + 0.5;
+    x1 = x1 + 0.5;
+    y1 = y1 + 0.5;
 
-	double halfside = sidelength / 2;
+    double halfside = sidelength / 2;
+
+    glColor3d(255, 255, 255);
 
 
-	glColor3d(255, 255, 255);
+    glBegin(GL_POLYGON);
 
-	
-	glBegin(GL_POLYGON);
+    glVertex2d(x1 + halfside, y1 + halfside);
+    glVertex2d(x1 + halfside, y1 - halfside);
+    glVertex2d(x1 - halfside, y1 - halfside);
+    glVertex2d(x1 - halfside, y1 + halfside);
 
-	glVertex2d(x1 + halfside, y1 + halfside);
-	glVertex2d(x1 + halfside, y1 - halfside);
-	glVertex2d(x1 - halfside, y1 - halfside);
-	glVertex2d(x1 - halfside, y1 + halfside);
-
-	glEnd();
+    glEnd();
 }
 
 
@@ -89,38 +107,65 @@ void gameLogic() {
     }
 
 }
-void draw() {
-        glClear(GL_COLOR_BUFFER_BIT);
-	    glLoadIdentity();
-	    glOrtho(0, 198, 0, 198, -1, 1);
-	    for(auto i : cellArray){
-		    if (i.alive) {
-		        drawSquare(i.x, i.y);
-		    }
-	    }
 
-        cellArray[(rand() % 39200) + (rand() % 6437)].alive = true;
+void draw(GLFWwindow* window) {
+    glClearColor(0, 0, 0, 0); // set bg to white
+    glClear(GL_COLOR_BUFFER_BIT);
 
-	    glEnd();
-	    glFlush();
-        glutPostRedisplay();
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(0, 198, 0, 198, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    for (auto i : cellArray) {
+        if (i.alive) {
+            drawSquare(i.x, i.y);
+        }
+    }
+
+    // cellArray[(rand() % 39200) + (rand() % 6437)].alive = true;
+
+    glfwSwapBuffers(window);
+
+    glfwPollEvents();
 }
 
-int main(int argc, char** argv) {
-	init();
+int main() {
+    glfwInit();
+    init();
 
     srand(time(NULL));
+
+    GLFWwindow* window = glfwCreateWindow(1000, 1000, "Pathfinding", NULL, NULL);
+
+    glfwSetWindowSizeLimits(window, 1000, 1000, 1000, 1000);
+
+    //glfwSetErrorCallback(error_callback);
+
+    if (!glfwInit())
+        exit(EXIT_FAILURE);
+
+    if (!window) {
+        glfwTerminate();
+        exit(EXIT_FAILURE);
+    }
 
     for (int x = 0; x < 12000; x++) {
         cellArray[(rand() % 39200) + (rand() % 6437)].alive = true;
     }
 
-	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGBA);
-	glutInitWindowSize(WIDTH, LENGTH);
-	glutCreateWindow("Conway's Game Of Life");
-    glutIdleFunc(gameLogic);
-	glutDisplayFunc(draw);
-    glutMainLoop();	
-	
+    glfwSetKeyCallback(window, key_callback);
+
+    glfwMakeContextCurrent(window);
+    gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+
+    while (!glfwWindowShouldClose(window)) {
+        gameLogic();
+        draw(window);
+    }
+
+    glfwTerminate();
+
 }
